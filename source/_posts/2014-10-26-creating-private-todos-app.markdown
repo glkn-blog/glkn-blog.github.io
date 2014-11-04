@@ -26,19 +26,14 @@ User of the application will be able to:
 
 First of all you have to make sure that your development environment meets minimum requirements for derby development. These are:
 
-- **nodejs** - most convenient way to install it is to use [node version manager](https://github.com/creationix/nvm){:target="_blank"}
-- **mongodb** - please refer to one of guides from the [official site](http://docs.mongodb.org/manual/installation){:target="_blank"}
+- **nodejs** - most convenient way to install it is to use [node version manager](https://github.com/creationix/nvm)
+- **mongodb** - please refer to one of guides from the [official site](http://docs.mongodb.org/manual/installation)
 
 ## Starting off
 
 ### Preparation
 
 In order to start scaffolding our application we need to install two additional modules - yeoman and generator-derby:
-{% codeblock linenos:false mark:2 lang:bash%}
-➜  npm install yo -g
-➜  npm install generator-derby -g
-{% endcodeblock %}
-
 {% highlight bash %}
 ➜  npm install yo -g
 ➜  npm install generator-derby -g
@@ -135,7 +130,7 @@ It looks like something gone wrong. Somehow we are not on the home page and we c
 
 Actually everything worked as expected. Derby-login module does huge amount of job when plugged in as express middleware. One of it's default settings is to secure whole application effectively denying access to every page except of login, logout and few other pages. That is why we don't see our freshly created homepage. But we hadn't created login and logout logic yet. That is why we are getting 404-error.
 
-> That might not be obvious from the start but derby-login module has enormous amount of settings. Most of them are set to their defaults when using it from yeoman generator. If you want to check whole range of possibilities that derby-login offers then the best place to start would be [derby-login-example application](https://github.com/derbyparty/derby-login-example){:target="_blank"}.
+> That might not be obvious from the start but derby-login module has enormous amount of settings. Most of them are set to their defaults when using it from yeoman generator. If you want to check whole range of possibilities that derby-login offers then the best place to start would be [derby-login-example application](https://github.com/derbyparty/derby-login-example).
 
 ### Implementing login and logout
 
@@ -277,7 +272,7 @@ Now it is time to implement todos logic.
 
 ### Adding todos logic
 
-We are going to add some code that will allow users to manage their todo list. We will take that code from awesome sample app [derby-example-todo](https://github.com/zag2art/derby-example-todo){:target="_blank"}. We need to copy following files:
+We are going to add some code that will allow users to manage their todo list. We will take that code from awesome sample app [derby-example-todo](https://github.com/zag2art/derby-example-todo). We need to copy following files:.
 
 - *derby-example-todo/app/index.js* to *apps/private-todos/index.js*
 - *derby-example-todo/app/css/index.css* to *apps/private-todos/styles/index.css*
@@ -471,7 +466,7 @@ Things are really bad since using the same trick we could query all todos and ev
 
 ### Securing the application
 
-Obviously we need to setup our server to allow users only to view, modify and delete only their own todos and nothing more. For that purpose we need to install [share-access](https://github.com/dmapper/share-access){:target="_blank"} module:
+Obviously we need to setup our server to allow users only to view, modify and delete only their own todos and nothing more. For that purpose we need to install [share-access](https://github.com/dmapper/share-access) module:
 {% highlight bash %}
 npm install share-access -S
 {% endhighlight %}
@@ -533,11 +528,11 @@ Now if we try to run our application again and to do our little trick with query
 
 # Wrapping up
 
-Today we created new derby application from the scratch, added some logic to it and secured it from malicious access. Finalized source code for this application can be found [here](https://github.com/glkn-blog/001-private-todos){:target="_blank"}
+Today we created new derby application from the scratch, added some logic to it and secured it from malicious access. Finalized source code for this application can be found [here](https://github.com/glkn-blog/001-private-todos)
 
 # Credits
 
-- [Decision mapper tutorials](http://decisionmapper.com/tutorials){:target="_blank"}
-- [derby-login module](https://github.com/derbyparty/derby-login){:target="_blank"}
-- [derby-login-example application](https://github.com/derbyparty/derby-login-example){:target="_blank"}
-- [derby-example-todo](https://github.com/zag2art/derby-example-todo){:target="_blank"}
+- [Decision mapper tutorials](http://decisionmapper.com/tutorials)
+- [derby-login module](https://github.com/derbyparty/derby-login)
+- [derby-login-example application](https://github.com/derbyparty/derby-login-example)
+- [derby-example-todo](https://github.com/zag2art/derby-example-todo)
