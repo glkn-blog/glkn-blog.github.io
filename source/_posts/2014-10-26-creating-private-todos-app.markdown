@@ -4,6 +4,7 @@ title:      "Creating private todos app"
 date:       2014-10-26 11:59:59
 author:     "Alexey Galkin"
 categories: [node, derby]
+comments:   true
 ---
 
 ## Abstract

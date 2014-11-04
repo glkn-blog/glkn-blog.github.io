@@ -1,0 +1,9 @@
+---
+layout:     post
+title:      "Hi there"
+date:       2014-10-18 11:59:59
+author:     "Alexey Galkin"
+comments:   true
+---
+
+Just starting off
