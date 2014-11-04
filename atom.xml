@@ -4,7 +4,7 @@
   <title><![CDATA[Alexey Galkin]]></title>
   <link href="http://glkn-blog.github.io/atom.xml" rel="self"/>
   <link href="http://glkn-blog.github.io/"/>
-  <updated>2014-11-04T22:15:02+03:00</updated>
+  <updated>2014-11-04T23:42:22+03:00</updated>
   <id>http://glkn-blog.github.io/</id>
   <author>
     <name><![CDATA[Alexey Galkin]]></name>
@@ -574,6 +574,15 @@ Bundle created: login
 <li><a href="https://github.com/zag2art/derby-example-todo">derby-example-todo</a></li>
 </ul>
 
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Hi There]]></title>
+    <link href="http://glkn-blog.github.io/blog/2014/10/18/hi-there/"/>
+    <updated>2014-10-18T15:59:59+04:00</updated>
+    <id>http://glkn-blog.github.io/blog/2014/10/18/hi-there</id>
+    <content type="html"><![CDATA[<p>Just starting off</p>
 ]]></content>
   </entry>
   
