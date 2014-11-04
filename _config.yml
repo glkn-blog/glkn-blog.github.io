@@ -2,10 +2,10 @@
 #      Main Configs       #
 # ----------------------- #
 
-url: http://yoursite.com
-title: My Octopress Blog
-subtitle: A blogging framework for hackers.
-author: Your Name
+url: http://glkn-blog.github.io
+title: Alexey Galkin
+subtitle: Blog about nodejs, angularjs and derbyjs 
+author: Alexey Galkin
 simple_search: https://www.google.com/search
 description:
 
