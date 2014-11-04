@@ -1,0 +1,538 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Node | Alexey Galkin]]></title>
+  <link href="http://glkn-blog.github.io/blog/categories/node/atom.xml" rel="self"/>
+  <link href="http://glkn-blog.github.io/"/>
+  <updated>2014-11-04T21:48:28+03:00</updated>
+  <id>http://glkn-blog.github.io/</id>
+  <author>
+    <name><![CDATA[Alexey Galkin]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Creating Private Todos App]]></title>
+    <link href="http://glkn-blog.github.io/blog/2014/10/26/creating-private-todos-app/"/>
+    <updated>2014-10-26T14:59:59+03:00</updated>
+    <id>http://glkn-blog.github.io/blog/2014/10/26/creating-private-todos-app</id>
+    <content type="html"><![CDATA[<h2>Abstract</h2>
+
+<p>In this post I will show how to setup derby development environment, create fresh derby application with aid of the yeoman template, add some logic and security to it.</p>
+
+<p>User of the application will be able to:</p>
+
+<ul>
+<li>Register</li>
+<li>Login and logout</li>
+<li>View his personal list of todos</li>
+<li>Add new todo to the list</li>
+<li>Remove todo from the list</li>
+<li>Mark todo as completed</li>
+<li>Filter todos by completion status</li>
+</ul>
+
+
+<!-- more -->
+
+
+<h2>Prerequisites</h2>
+
+<p>First of all you have to make sure that your development environment meets minimum requirements for derby development. These are:</p>
+
+<ul>
+<li><strong>nodejs</strong> - most convenient way to install it is to use <a href="https://github.com/creationix/nvm">node version manager</a></li>
+<li><strong>mongodb</strong> - please refer to one of guides from the <a href="http://docs.mongodb.org/manual/installation">official site</a></li>
+</ul>
+
+
+<h2>Starting off</h2>
+
+<h3>Preparation</h3>
+
+<p>In order to start scaffolding our application we need to install two additional modules - yeoman and generator-derby:
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">➜  npm install yo -g
+➜  npm install generator-derby -g</code></pre></div></p>
+
+<p>Now let&rsquo;s create new directory for our application and cd into it:
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">➜  mkdir private-todos
+➜  <span class="nb">cd </span>private-todos</code></pre></div></p>
+
+<h3>Scaffolding</h3>
+
+<p>We are ready to use generator-derby in order to create some strong ground for our application. Start it with <code>yo derby</code> and then pick the following options:</p>
+
+<ul>
+<li>Select project level features - derby-login</li>
+<li>Select derby-login packages - none</li>
+<li>Input Derby-app name - private-todos</li>
+<li>Select &ldquo;private-todos&rdquo;-application features - Bootstrap 3</li>
+</ul>
+
+
+<p>After that yeoman will generate our application and install all required packages. We are ready to go!</p>
+
+<p>Lets see what we got:</p>
+
+<pre>
+.
+|-- README.md
+|-- apps
+|   |-- error
+|   |   |-- index.js
+|   |   |-- styles
+|   |   |   |-- index.css
+|   |   |   `-- reset.css
+|   |   `-- views
+|   |       |-- 403.html
+|   |       |-- 404.html
+|   |       |-- 500.html
+|   |       `-- index.html
+|   `-- private-todos
+|       |-- index.js
+|       |-- styles
+|       |   `-- index.css
+|       `-- views
+|           |-- home.html
+|           `-- index.html
+|-- components
+|-- config
+|   |-- defaults.json
+|   `-- login.js
+|-- package.json
+|-- public
+|   |-- derby
+|   `-- img
+|       `-- favicon.ico
+|-- server
+|   |-- config.js
+|   |-- error.js
+|   |-- express.js
+|   |-- routes.js
+|   `-- store.js
+|-- server.js
+`-- test
+</pre>
+
+
+<ul>
+<li><strong>app</strong> will contain derby-apps which are essentially building block of every derby application</li>
+<li><strong>components</strong> is for placing custom components</li>
+<li><strong>config</strong> contains configuration options for our application, default settings and settings of derby-login module</li>
+<li><strong>public</strong> is for placing our public assets that have to be served to the clients</li>
+<li><strong>server</strong> contains some code that will bootstrap our application on startup</li>
+<li><em>server.js</em> is the entry point to our application, we will see into that shorly</li>
+<li><strong>test</strong> is for placing tests</li>
+</ul>
+
+
+<p>Okay, freshly scaffolded application is supposed to be fully operational. So lets start it and check what it actually does.</p>
+
+<blockquote><p>Before starting please make sure that you have mongod started on the default port. Which is 27017. If that is not your case by some reason, please setup MONGODB_URL environment variable with correct mongodb connection string.</p></blockquote>
+
+<p>To start out application we have to run command <code>node server</code>:</p>
+
+<pre>
+➜  node server
+Master pid  5489
+Bundle created: private-todos
+5490 listening. Go to: http://localhost:3000/
+</pre>
+
+
+<p>Nice, it worked. Lets open this url in a browser.
+<img class="screenShot" src="/images/posts/001/001-first-run.png"></p>
+
+<p>It looks like something gone wrong. Somehow we are not on the home page and we can&rsquo;t return there. We always get redirected at login page and that leads to 404-error. Why is that?</p>
+
+<h2>Authentication</h2>
+
+<h3>What happened?</h3>
+
+<p>Actually everything worked as expected. Derby-login module does huge amount of job when plugged in as express middleware. One of it&rsquo;s default settings is to secure whole application effectively denying access to every page except of login, logout and few other pages. That is why we don&rsquo;t see our freshly created homepage. But we hadn&rsquo;t created login and logout logic yet. That is why we are getting 404-error.</p>
+
+<blockquote><p>That might not be obvious from the start but derby-login module has enormous amount of settings. Most of them are set to their defaults when using it from yeoman generator. If you want to check whole range of possibilities that derby-login offers then the best place to start would be <a href="https://github.com/derbyparty/derby-login-example">derby-login-example application</a>.</p></blockquote>
+
+<h3>Implementing login and logout</h3>
+
+<p>We could create several handlers in our main app (which is private-todos). But for the sake of separation of concerns we will split our application into two apps:</p>
+
+<ul>
+<li><strong>private-todos</strong> - this app will handle all todo-specific logic</li>
+<li><strong>login</strong> - this app will handle login and registration logic</li>
+</ul>
+
+
+<blockquote><p>We could create something to handle logout logic as well, but derby-login already does that for us.</p></blockquote>
+
+<p>To do that we have to create one more app inside of <strong>apps</strong> directory:
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">➜  mkdir apps/login
+➜  mkdir apps/login/views
+➜  mkdir apps/login/styles</code></pre></div></p>
+
+<p>Then lets create empty index.css file in <strong>apps/login/styles</strong> directory.
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">➜  touch apps/login/styles/index.css</code></pre></div></p>
+
+<p>Now we have to create few more files to implement login logic:</p>
+
+<p><em>apps/login/index.js</em>:
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">derby</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="nx">derby</span><span class="o">&amp;</span><span class="nx">rsquo</span><span class="p">;);</span><span class="o">&lt;</span><span class="err">/p&gt;</span>
+
+<span class="o">&lt;</span><span class="nx">p</span><span class="o">&gt;</span><span class="kd">var</span> <span class="nx">app</span> <span class="o">=</span> <span class="nx">module</span><span class="p">.</span><span class="nx">exports</span> <span class="o">=</span> <span class="nx">derby</span><span class="p">.</span><span class="nx">createApp</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="nx">login</span><span class="o">&amp;</span><span class="nx">rsquo</span><span class="p">;,</span> <span class="nx">__filename</span><span class="p">);</span><span class="o">&lt;</span><span class="err">/p&gt;</span>
+
+<span class="o">&lt;</span><span class="nx">p</span><span class="o">&gt;</span><span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">derby</span><span class="p">.</span><span class="nx">util</span><span class="p">.</span><span class="nx">isProduction</span><span class="p">)</span> <span class="nx">global</span><span class="p">.</span><span class="nx">app</span> <span class="o">=</span> <span class="nx">app</span><span class="p">;</span><span class="o">&lt;</span><span class="err">/p&gt;</span>
+
+<span class="o">&lt;</span><span class="nx">p</span><span class="o">&gt;</span><span class="nx">app</span><span class="p">.</span><span class="nx">use</span><span class="p">(</span><span class="nx">require</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">rsquo</span><span class="p">;</span><span class="nx">d</span><span class="o">-</span><span class="nx">bootstrap</span><span class="err">&#39;</span><span class="p">));</span>
+<span class="nx">app</span><span class="p">.</span><span class="nx">use</span><span class="p">(</span><span class="nx">require</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="nx">derby</span><span class="o">-</span><span class="nx">login</span><span class="o">/</span><span class="nx">components</span><span class="o">/</span><span class="nx">notAuth</span><span class="o">&amp;</span><span class="nx">rsquo</span><span class="p">;));</span><span class="o">&lt;</span><span class="err">/p&gt;</span>
+
+<span class="o">&lt;</span><span class="nx">p</span><span class="o">&gt;</span><span class="nx">app</span><span class="p">.</span><span class="nx">loadViews</span><span class="p">(</span><span class="o">&lt;</span><span class="nx">strong</span><span class="o">&gt;</span><span class="nx">dirname</span> <span class="o">+</span> <span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="err">/views&amp;rsquo;);</span>
+<span class="nx">app</span><span class="p">.</span><span class="nx">loadStyles</span><span class="p">(</span><span class="o">&lt;</span><span class="err">/strong&gt;dirname + &amp;lsquo;/styles&amp;rsquo;);&lt;/p&gt;</span>
+
+<span class="o">&lt;</span><span class="nx">p</span><span class="o">&gt;</span><span class="nx">app</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="err">/login&amp;rsquo;, function(page, model){</span>
+    <span class="nx">page</span><span class="p">.</span><span class="nx">render</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="nx">login</span><span class="o">&amp;</span><span class="nx">rsquo</span><span class="p">;);</span>
+<span class="p">});</span></code></pre></div></p>
+
+<p><em>apps/login/views/index.html</em>:
+<div class="highlight"><pre><code class="language-html" data-lang="html"><span class="ni">&amp;lt;</span>import: src=<span class="ni">&amp;lsquo;</span>./login<span class="ni">&amp;rsquo;</span>&gt;
+<span class="ni">&amp;lt;</span>Title:&gt;
+  {{_page.title}}
+  <span class="ni">&amp;lt;</span>Body:&gt;
+    <span class="nt">&lt;view</span> <span class="na">name=</span><span class="s">&quot;{{$render.ns}}&quot;</span><span class="nt">/&gt;</span></code></pre></div></p>
+
+<p><em>apps/login/views/login.html</em>:
+<div class="highlight"><pre><code class="language-html" data-lang="html"><span class="ni">&amp;lt;</span>index:&gt;
+    <span class="nt">&lt;div</span> <span class="na">class=</span><span class="s">&quot;container&quot;</span><span class="nt">&gt;</span>
+        <span class="nt">&lt;div</span> <span class="na">class=</span><span class="s">&quot;row&quot;</span><span class="nt">&gt;</span>
+            <span class="nt">&lt;h1&gt;</span>Welcome to private todos app <span class="nt">&lt;/h1&gt;</span>
+        <span class="nt">&lt;/div&gt;</span>
+        <span class="nt">&lt;div</span> <span class="na">class=</span><span class="s">&quot;row&quot;</span><span class="nt">&gt;</span>
+            <span class="nt">&lt;div</span> <span class="na">class=</span><span class="s">&quot;col-sm-4 col-sm-offset-1&quot;</span><span class="nt">&gt;</span>
+                <span class="nt">&lt;view</span> <span class="na">name=</span><span class="s">&quot;auth:login&quot;</span> <span class="nt">/&gt;</span>
+            <span class="nt">&lt;/div&gt;</span>
+            <span class="nt">&lt;div</span> <span class="na">class=</span><span class="s">&quot;col-sm-4 col-sm-offset-1&quot;</span><span class="nt">&gt;</span>
+                <span class="nt">&lt;view</span> <span class="na">name=</span><span class="s">&quot;auth:register&quot;</span> <span class="nt">/&gt;</span>
+            <span class="nt">&lt;/div&gt;</span>
+        <span class="nt">&lt;/div&gt;</span>
+    <span class="nt">&lt;/div&gt;</span></code></pre></div></p>
+
+<p>We are almost done. One more thing we have to do is to setup derby-login to omit email verification process. That is turned on by default and in real life your should not turn it off. But today for the sake of simplicity we will do it.</p>
+
+<p>Change the following lines in <em>config/login.js</em>:
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="nx">module</span><span class="p">.</span><span class="nx">exports</span> <span class="o">=</span> <span class="p">{</span>
+  <span class="c1">// … code omited</span>
+    <span class="nx">user</span><span class="o">:</span> <span class="p">{</span>
+        <span class="nx">id</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
+        <span class="nx">email</span><span class="o">:</span> <span class="kc">true</span>
+    <span class="p">}</span>
+<span class="p">};</span></code></pre></div></p>
+
+<p>To:
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="nx">module</span><span class="p">.</span><span class="nx">exports</span> <span class="o">=</span> <span class="p">{</span>
+  <span class="c1">// … code omited</span>
+    <span class="nx">user</span><span class="o">:</span> <span class="p">{</span>
+        <span class="nx">id</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
+        <span class="nx">email</span><span class="o">:</span> <span class="kc">true</span>
+    <span class="p">},</span>
+    <span class="nx">confirmRegistration</span><span class="o">:</span> <span class="kc">false</span>
+<span class="p">};</span></code></pre></div></p>
+
+<p>Last thing we have to do is to plug our login app into our derby application. That is done through <em>server.js</em>, we have to change it:
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="c1">// … code omited</span>
+<span class="kd">var</span> <span class="nx">apps</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="nx">require</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;.</span><span class="o">/</span><span class="nx">apps</span><span class="o">/</span><span class="kr">private</span><span class="o">-</span><span class="nx">todos</span><span class="o">&amp;</span><span class="nx">rsquo</span><span class="p">;)</span>
+    <span class="c1">// &lt;end of app list&gt; - don&amp;rsquo;t remove this comment</span>
+<span class="p">];</span>
+<span class="c1">// … code omited</span></code></pre></div></p>
+
+<p>To:
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="c1">// … code omited</span>
+<span class="kd">var</span> <span class="nx">apps</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="nx">require</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;.</span><span class="o">/</span><span class="nx">apps</span><span class="o">/</span><span class="kr">private</span><span class="o">-</span><span class="nx">todos</span><span class="o">&amp;</span><span class="nx">rsquo</span><span class="p">;),</span>
+    <span class="nx">require</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;.</span><span class="o">/</span><span class="nx">apps</span><span class="o">/</span><span class="nx">login</span><span class="o">&amp;</span><span class="nx">rsquo</span><span class="p">;)</span>
+    <span class="c1">// &lt;end of app list&gt; - don&amp;rsquo;t remove this comment</span>
+<span class="p">];</span>
+<span class="c1">// … code omited</span></code></pre></div></p>
+
+<p>Now we can try to start our application again:</p>
+
+<pre>
+➜  node server
+Master pid  6465
+Bundle created: private-todos
+Bundle created: login
+6466 listening. Go to: http://localhost:3000/
+</pre>
+
+
+<p>And the result is:
+<img class="screenShot" src="/images/posts/001/002-login-works.png"></p>
+
+<p>Now we can register. After that we will be redirected to the homepage of our application:
+<img class="screenShot" src="/images/posts/001/003-after-registration.png"></p>
+
+<p>We hadn&rsquo;t implemented logout link yet but derby-login already has us covered - lets navigate to <em>/auth/logout</em>:
+<img class="screenShot" src="/images/posts/001/004-logout-works.png"></p>
+
+<p>Now it is time to implement todos logic.</p>
+
+<h2>Implementing private todos</h2>
+
+<h3>Adding todos logic</h3>
+
+<p>We are going to add some code that will allow users to manage their todo list. We will take that code from awesome sample app <a href="https://github.com/zag2art/derby-example-todo">derby-example-todo</a>. We need to copy following files:.</p>
+
+<ul>
+<li><em>derby-example-todo/app/index.js</em> to <em>apps/private-todos/index.js</em></li>
+<li><em>derby-example-todo/app/css/index.css</em> to <em>apps/private-todos/styles/index.css</em></li>
+<li><em>derby-example-todo/app/views/index.html</em> to <em>apps/private-todos/views/index.html</em></li>
+</ul>
+
+
+<p>Since generator-derby creates slightly different directory structure we need to change <em>apps/private-todos/index.js</em> from:
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">derby</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="nx">derby</span><span class="o">&amp;</span><span class="nx">rsquo</span><span class="p">;);</span>
+<span class="kd">var</span> <span class="nx">app</span> <span class="o">=</span> <span class="nx">module</span><span class="p">.</span><span class="nx">exports</span> <span class="o">=</span> <span class="nx">derby</span><span class="p">.</span><span class="nx">createApp</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="nx">todos</span><span class="o">&amp;</span><span class="nx">rsquo</span><span class="p">;,</span> <span class="nx">__filename</span><span class="p">);</span><span class="o">&lt;</span><span class="err">/p&gt;</span>
+
+<span class="o">&lt;</span><span class="nx">p</span><span class="o">&gt;</span><span class="nx">global</span><span class="p">.</span><span class="nx">app</span> <span class="o">=</span> <span class="nx">app</span><span class="p">;</span><span class="o">&lt;</span><span class="err">/p&gt;</span>
+
+<span class="o">&lt;</span><span class="nx">p</span><span class="o">&gt;</span><span class="nx">app</span><span class="p">.</span><span class="nx">loadViews</span> <span class="p">(</span><span class="o">&lt;</span><span class="nx">strong</span><span class="o">&gt;</span><span class="nx">dirname</span><span class="o">+&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="err">/views&amp;rsquo;);</span>
+<span class="nx">app</span><span class="p">.</span><span class="nx">loadStyles</span><span class="p">(</span><span class="o">&lt;</span><span class="err">/strong&gt;dirname+&amp;lsquo;/css&amp;rsquo;);</span>
+<span class="c1">// … code omited</span></code></pre></div>
+To:
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">derby</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="nx">derby</span><span class="o">&amp;</span><span class="nx">rsquo</span><span class="p">;);</span>
+<span class="kd">var</span> <span class="nx">app</span> <span class="o">=</span> <span class="nx">module</span><span class="p">.</span><span class="nx">exports</span> <span class="o">=</span> <span class="nx">derby</span><span class="p">.</span><span class="nx">createApp</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="kr">private</span><span class="o">-</span><span class="nx">todos</span><span class="o">&amp;</span><span class="nx">rsquo</span><span class="p">;,</span> <span class="nx">__filename</span><span class="p">);</span><span class="o">&lt;</span><span class="err">/p&gt;</span>
+
+<span class="o">&lt;</span><span class="nx">p</span><span class="o">&gt;</span><span class="nx">global</span><span class="p">.</span><span class="nx">app</span> <span class="o">=</span> <span class="nx">app</span><span class="p">;</span><span class="o">&lt;</span><span class="err">/p&gt;</span>
+
+<span class="o">&lt;</span><span class="nx">p</span><span class="o">&gt;</span><span class="nx">app</span><span class="p">.</span><span class="nx">loadViews</span> <span class="p">(</span><span class="o">&lt;</span><span class="nx">strong</span><span class="o">&gt;</span><span class="nx">dirname</span><span class="o">+&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="err">/views&amp;rsquo;);</span>
+<span class="nx">app</span><span class="p">.</span><span class="nx">loadStyles</span><span class="p">(</span><span class="o">&lt;</span><span class="err">/strong&gt;dirname+&amp;lsquo;/styles&amp;rsquo;);</span>
+<span class="c1">// … code omited</span></code></pre></div></p>
+
+<p>Also lets remove <em>apps/private-todos/views/home.html</em> since we don&rsquo;t really need that anymore - all our view logic is contained in <em>apps/private-todos/views/index.html</em>.</p>
+
+<p>Now it is time to run our application and login. We can see empty todo list:
+<img class="screenShot" src="/images/posts/001/005-empty-todos.png"></p>
+
+<p>We can add several items and check that it actually live updates:
+<img class="screenShot" src="/images/posts/001/006-todos-added.png"></p>
+
+<blockquote><p>Take note that our todos list does not use bootstrap styles. That is due to the fact that derby creates different &ldquo;bundle&rdquo; for every app registered. In our case &ldquo;login&rdquo; bundle has bootstrap styles embedded while our &ldquo;private-todos&rdquo; bundle uses its own styles. That gives us really nice separation of code.</p></blockquote>
+
+<p>But if we create another user and login then we will see the same todo list. Obviously there is very little private here. We need to fix that.</p>
+
+<h3>Adding some privacy</h3>
+
+<p>First of all lets add some way to distinguish users so we can test our application easily. Lets add current user&rsquo;s email in the top right corner along with logout link.</p>
+
+<p>First we need to add the following styles at the end of <em>apps/private-todos/styles/index.css</em>:
+<div class="highlight"><pre><code class="language-css" data-lang="css"><span class="o">&lt;/</span><span class="nt">p</span><span class="o">&gt;</span>
+
+<span class="o">&lt;</span><span class="nt">h1</span><span class="o">&gt;</span><span class="nt">userInfo</span> <span class="p">{</span><span class="o">&lt;/</span><span class="n">h1</span><span class="o">&gt;</span>
+
+<span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="k">position</span><span class="o">:</span> <span class="k">fixed</span><span class="p">;</span>
+<span class="k">top</span><span class="o">:</span><span class="m">10px</span><span class="p">;</span>
+<span class="k">right</span><span class="o">:</span><span class="m">20px</span><span class="p">;</span>
+<span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+
+<span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="p">}</span></code></pre></div></p>
+
+<p>Now we have to change <em>apps/private-todos/views/index.html</em>:
+<div class="highlight"><pre><code class="language-html" data-lang="html"><span class="ni">&amp;lt;</span>Body:&gt;
+  <span class="nt">&lt;section</span> <span class="na">id=</span><span class="s">&quot;todoapp&quot;</span><span class="nt">&gt;</span>
+    <span class="nt">&lt;view</span> <span class="na">name=</span><span class="s">&quot;header&quot;</span><span class="nt">/&gt;</span>
+    <span class="nt">&lt;view</span> <span class="na">name=</span><span class="s">&quot;main&quot;</span><span class="nt">/&gt;</span>
+    <span class="nt">&lt;view</span> <span class="na">name=</span><span class="s">&quot;footer&quot;</span><span class="nt">/&gt;</span>
+  <span class="nt">&lt;/section&gt;&lt;/p&gt;</span>
+
+<span class="c">&lt;!-- … code omited --&gt;</span>
+
+
+<span class="nt">&lt;p&gt;</span></code></pre></div></p>
+
+<p>To:
+<div class="highlight"><pre><code class="language-html" data-lang="html"><span class="ni">&amp;lt;</span>Body:&gt;
+  <span class="nt">&lt;section</span> <span class="na">id=</span><span class="s">&quot;todoapp&quot;</span><span class="nt">&gt;</span>
+    <span class="nt">&lt;view</span> <span class="na">name=</span><span class="s">&quot;userInfo&quot;</span><span class="nt">/&gt;</span>
+    <span class="nt">&lt;view</span> <span class="na">name=</span><span class="s">&quot;header&quot;</span><span class="nt">/&gt;</span>
+    <span class="nt">&lt;view</span> <span class="na">name=</span><span class="s">&quot;main&quot;</span><span class="nt">/&gt;</span>
+    <span class="nt">&lt;view</span> <span class="na">name=</span><span class="s">&quot;footer&quot;</span><span class="nt">/&gt;</span>
+  <span class="nt">&lt;/section&gt;&lt;/p&gt;</span>
+
+<span class="nt">&lt;p&gt;</span><span class="ni">&amp;lt;</span>userInfo:&gt;
+ <span class="nt">&lt;div</span> <span class="na">id=</span><span class="s">&quot;userInfo&quot;</span><span class="nt">&gt;</span>{{_session.user.email}} (<span class="nt">&lt;a</span> <span class="na">href=</span><span class="s">&quot;http://glkn-blog.github.io/auth/logout&quot;</span><span class="nt">&gt;</span>logout<span class="nt">&lt;/a&gt;</span>)<span class="nt">&lt;/div&gt;</span> <span class="nt">&lt;/p&gt;</span>
+
+<span class="c">&lt;!-- … code omited --&gt;</span>
+
+
+<span class="nt">&lt;p&gt;</span></code></pre></div></p>
+
+<p>Finally we have to make sure that <code>_session.user.email</code> is accessible from the view. So we have to change <em>apps/private-todos/index.js</em>:
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="c1">// … code omited</span>
+<span class="nx">app</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="err">/&amp;rsquo;,          getPage(&amp;lsquo;all&amp;rsquo;));</span>
+<span class="nx">app</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="err">/active&amp;rsquo;,    getPage(&amp;lsquo;active&amp;rsquo;));</span>
+<span class="nx">app</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="err">/completed&amp;rsquo;, getPage(&amp;lsquo;completed&amp;rsquo;));</span>
+<span class="c1">// … code omited</span></code></pre></div></p>
+
+<p>To:
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="c1">// … code omited</span>
+<span class="nx">app</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="o">*&amp;</span><span class="nx">rsquo</span><span class="p">;,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">page</span><span class="p">,</span> <span class="nx">model</span><span class="p">,</span> <span class="nx">params</span><span class="p">,</span> <span class="nx">next</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nx">model</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="o">&lt;</span><span class="nx">em</span><span class="o">&gt;</span><span class="nx">session</span><span class="p">.</span><span class="nx">loggedIn</span><span class="o">&amp;</span><span class="nx">rsquo</span><span class="p">;))</span> <span class="p">{</span>
+        <span class="kd">var</span> <span class="nx">userId</span> <span class="o">=</span> <span class="nx">model</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="o">&lt;</span><span class="err">/em&gt;session.userId&amp;rsquo;);</span>
+        <span class="kd">var</span> <span class="nx">user</span> <span class="o">=</span> <span class="nx">model</span><span class="p">.</span><span class="nx">at</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="nx">users</span><span class="p">.</span><span class="o">&amp;</span><span class="nx">rsquo</span><span class="p">;</span> <span class="o">+</span> <span class="nx">userId</span><span class="p">);</span>
+        <span class="nx">model</span><span class="p">.</span><span class="nx">subscribe</span><span class="p">(</span><span class="nx">user</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+            <span class="nx">model</span><span class="p">.</span><span class="nx">ref</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="nx">_session</span><span class="p">.</span><span class="nx">user</span><span class="o">&amp;</span><span class="nx">rsquo</span><span class="p">;,</span> <span class="nx">user</span><span class="p">);</span>
+            <span class="nx">next</span><span class="p">();</span>
+        <span class="p">});</span>
+     <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+        <span class="nx">next</span><span class="p">();</span>
+     <span class="p">}</span>
+<span class="p">});</span><span class="o">&lt;</span><span class="err">/p&gt;</span>
+
+<span class="o">&lt;</span><span class="nx">p</span><span class="o">&gt;</span><span class="nx">app</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="err">/&amp;rsquo;, getPage(&amp;lsquo;all&amp;rsquo;));</span>
+<span class="nx">app</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="err">/active&amp;rsquo;, getPage(&amp;lsquo;active&amp;rsquo;));</span>
+<span class="nx">app</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="err">/completed&amp;rsquo;, getPage(&amp;lsquo;completed&amp;rsquo;));</span>
+<span class="c1">// … code omited</span></code></pre></div></p>
+
+<p>Lets check what we have now:
+<img class="screenShot" src="/images/posts/001/007-userinfo-added.png"></p>
+
+<p>Okay, it looks like we have our application personalized. But obviously todos list is now shared between users. You can easily check that if you login with two different users. That is not what we want and that has to be changed.</p>
+
+<h3>Adding some privacy</h3>
+
+<p>Actually it is very easy to add some privacy to our todos - we have to add ownerId field upon creation of each todo and for each user we have to load only his(her) todos. Lets implement that.</p>
+
+<p>We need to change <strong>getPage</strong> method in <em>apps/private-todos/index.js</em>:
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">function</span> <span class="nx">getPage</span><span class="p">(</span><span class="nx">filter</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="kd">function</span><span class="p">(</span><span class="nx">page</span><span class="p">,</span> <span class="nx">model</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">model</span><span class="p">.</span><span class="nx">subscribe</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="nx">todos</span><span class="o">&amp;</span><span class="nx">rsquo</span><span class="p">;,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+            <span class="nx">model</span><span class="p">.</span><span class="nx">filter</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="nx">todos</span><span class="o">&amp;</span><span class="nx">rsquo</span><span class="p">;,</span> <span class="nx">filter</span><span class="p">).</span><span class="nx">ref</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="o">&lt;</span><span class="nx">em</span><span class="o">&gt;</span><span class="nx">page</span><span class="p">.</span><span class="nx">todos</span><span class="o">&amp;</span><span class="nx">rsquo</span><span class="p">;);</span>
+            <span class="nx">model</span><span class="p">.</span><span class="nx">start</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="o">&lt;</span><span class="err">/em&gt;page.counters&amp;rsquo;, &amp;lsquo;todos&amp;rsquo;, &amp;lsquo;counters&amp;rsquo;);</span>
+            <span class="nx">page</span><span class="p">.</span><span class="nx">render</span><span class="p">();</span>
+        <span class="p">});</span>
+    <span class="p">}</span>
+<span class="p">}</span></code></pre></div></p>
+
+<p>To:
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">function</span> <span class="nx">getPage</span><span class="p">(</span><span class="nx">filter</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="kd">function</span><span class="p">(</span><span class="nx">page</span><span class="p">,</span> <span class="nx">model</span><span class="p">)</span> <span class="p">{</span>
+        <span class="kd">var</span> <span class="nx">todos</span> <span class="o">=</span> <span class="nx">model</span><span class="p">.</span><span class="nx">query</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="nx">todos</span><span class="o">&amp;</span><span class="nx">rsquo</span><span class="p">;,</span> <span class="p">{</span>
+            <span class="nx">ownerId</span><span class="o">:</span> <span class="nx">model</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="o">&lt;</span><span class="nx">em</span><span class="o">&gt;</span><span class="nx">session</span><span class="p">.</span><span class="nx">userId</span><span class="o">&amp;</span><span class="nx">rsquo</span><span class="p">;)</span>
+        <span class="p">});</span>
+        <span class="nx">model</span><span class="p">.</span><span class="nx">subscribe</span><span class="p">(</span><span class="nx">todos</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+            <span class="nx">model</span><span class="p">.</span><span class="nx">filter</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="nx">todos</span><span class="o">&amp;</span><span class="nx">rsquo</span><span class="p">;,</span> <span class="nx">filter</span><span class="p">).</span><span class="nx">ref</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="o">&lt;</span><span class="err">/em&gt;page.todos&amp;rsquo;);</span>
+            <span class="nx">model</span><span class="p">.</span><span class="nx">start</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="nx">_page</span><span class="p">.</span><span class="nx">counters</span><span class="o">&amp;</span><span class="nx">rsquo</span><span class="p">;,</span> <span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="nx">todos</span><span class="o">&amp;</span><span class="nx">rsquo</span><span class="p">;,</span> <span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="nx">counters</span><span class="o">&amp;</span><span class="nx">rsquo</span><span class="p">;);</span>
+            <span class="nx">page</span><span class="p">.</span><span class="nx">render</span><span class="p">();</span>
+        <span class="p">});</span>
+    <span class="p">};</span>
+<span class="p">}</span></code></pre></div></p>
+
+<p>And <strong>addTodo</strong> method in <em>apps/private-todos/index.js</em>:
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="nx">app</span><span class="p">.</span><span class="nx">proto</span><span class="p">.</span><span class="nx">addTodo</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">newTodo</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">newTodo</span><span class="p">)</span> <span class="k">return</span><span class="p">;</span>
+        <span class="k">this</span><span class="p">.</span><span class="nx">model</span><span class="p">.</span><span class="nx">add</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="nx">todos</span><span class="o">&amp;</span><span class="nx">rsquo</span><span class="p">;,</span> <span class="p">{</span>
+            <span class="nx">text</span><span class="o">:</span> <span class="nx">newTodo</span><span class="p">,</span>
+            <span class="nx">completed</span><span class="o">:</span> <span class="kc">false</span>
+        <span class="p">});</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">model</span><span class="p">.</span><span class="nx">set</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="nx">_page</span><span class="p">.</span><span class="nx">newTodo</span><span class="o">&amp;</span><span class="nx">rsquo</span><span class="p">;,</span> <span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="o">&amp;</span><span class="nx">rsquo</span><span class="p">;);</span>
+<span class="p">};</span></code></pre></div></p>
+
+<p>To:
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="nx">app</span><span class="p">.</span><span class="nx">proto</span><span class="p">.</span><span class="nx">addTodo</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">newTodo</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">newTodo</span><span class="p">)</span> <span class="k">return</span><span class="p">;</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">model</span><span class="p">.</span><span class="nx">add</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="nx">todos</span><span class="o">&amp;</span><span class="nx">rsquo</span><span class="p">;,</span> <span class="p">{</span>
+        <span class="nx">text</span><span class="o">:</span> <span class="nx">newTodo</span><span class="p">,</span>
+        <span class="nx">completed</span><span class="o">:</span> <span class="kc">false</span><span class="p">,</span>
+        <span class="nx">ownerId</span><span class="o">:</span> <span class="k">this</span><span class="p">.</span><span class="nx">model</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="o">&lt;</span><span class="nx">em</span><span class="o">&gt;</span><span class="nx">session</span><span class="p">.</span><span class="nx">userId</span><span class="o">&amp;</span><span class="nx">rsquo</span><span class="p">;)</span>
+    <span class="p">});</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">model</span><span class="p">.</span><span class="nx">set</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="o">&lt;</span><span class="err">/em&gt;page.newTodo&amp;rsquo;, &amp;lsquo;&amp;rsquo;);</span>
+<span class="p">};</span></code></pre></div></p>
+
+<p>Okay, lets check what we have now. Lets login as one of the users and add some todos:
+<img class="screenShot" src="/images/posts/001/008-aa-todos.png"></p>
+
+<p>Now lets login as another user and see that he has empty todo list:
+<img class="screenShot" src="/images/posts/001/009-zz-todos.png"></p>
+
+<p>It looks like everything works now. But actually while our application looks like it secures todos of one user from another, it has some not very pleasant backdoor. Lets open console in the browser and type few commands:
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">auths</span> <span class="o">=</span> <span class="nx">app</span><span class="p">.</span><span class="nx">model</span><span class="p">.</span><span class="nx">query</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="nx">auths</span><span class="o">&amp;</span><span class="nx">rsquo</span><span class="p">;,{})</span>
+<span class="nx">app</span><span class="p">.</span><span class="nx">model</span><span class="p">.</span><span class="nx">fetch</span><span class="p">(</span><span class="nx">auths</span><span class="p">)</span>
+<span class="nx">auths</span><span class="p">.</span><span class="nx">get</span><span class="p">()</span></code></pre></div></p>
+
+<p>As the result we see that our server happily returns contents of <code>auths</code> collection which has all of our users with password hashes etc:
+<img class="screenShot" src="/images/posts/001/010-security-breach.png"></p>
+
+<p>Things are really bad since using the same trick we could query all todos and even add todos to list of any user.</p>
+
+<h3>Securing the application</h3>
+
+<p>Obviously we need to setup our server to allow users only to view, modify and delete only their own todos and nothing more. For that purpose we need to install <a href="https://github.com/dmapper/share-access">share-access</a> module:
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">npm install share-access -S</code></pre></div></p>
+
+<p>Now we have to configure share-access for our project. First of all lets create file with share-access configuration - <em>server/shareAccess.js</em>:
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">shareAccess</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="nx">share</span><span class="o">-</span><span class="nx">access</span><span class="o">&amp;</span><span class="nx">rsquo</span><span class="p">;);</span><span class="o">&lt;</span><span class="err">/p&gt;</span>
+
+<span class="o">&lt;</span><span class="nx">p</span><span class="o">&gt;</span><span class="nx">module</span><span class="p">.</span><span class="nx">exports</span> <span class="o">=</span> <span class="nx">shareAccess</span><span class="p">;</span><span class="o">&lt;</span><span class="err">/p&gt;</span>
+
+<span class="o">&lt;</span><span class="nx">p</span><span class="o">&gt;</span><span class="kd">function</span> <span class="nx">isOwner</span><span class="p">(</span><span class="nx">docId</span><span class="p">,</span> <span class="nx">doc</span><span class="p">,</span> <span class="nx">session</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nx">doc</span><span class="p">.</span><span class="nx">ownerId</span> <span class="o">===</span> <span class="nx">session</span><span class="p">.</span><span class="nx">userId</span><span class="p">;</span>
+<span class="p">}</span><span class="o">&lt;</span><span class="err">/p&gt;</span>
+
+<span class="o">&lt;</span><span class="nx">p</span><span class="o">&gt;</span><span class="nx">shareAccess</span><span class="p">.</span><span class="nx">allowRead</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="nx">todos</span><span class="o">&amp;</span><span class="nx">rsquo</span><span class="p">;,</span> <span class="nx">isOwner</span><span class="p">);</span>
+<span class="nx">shareAccess</span><span class="p">.</span><span class="nx">allowDelete</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="nx">todos</span><span class="o">&amp;</span><span class="nx">rsquo</span><span class="p">;,</span> <span class="nx">isOwner</span><span class="p">);</span>
+<span class="nx">shareAccess</span><span class="p">.</span><span class="nx">allowCreate</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="nx">todos</span><span class="o">&amp;</span><span class="nx">rsquo</span><span class="p">;,</span> <span class="nx">isOwner</span><span class="p">);</span><span class="o">&lt;</span><span class="err">/p&gt;</span>
+
+<span class="o">&lt;</span><span class="nx">p</span><span class="o">&gt;</span><span class="nx">shareAccess</span><span class="p">.</span><span class="nx">allowUpdate</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="nx">todos</span><span class="o">&amp;</span><span class="nx">rsquo</span><span class="p">;,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">docId</span><span class="p">,</span> <span class="nx">oldDoc</span><span class="p">,</span> <span class="nx">newDoc</span><span class="p">,</span> <span class="nx">path</span><span class="p">,</span> <span class="nx">session</span><span class="p">){</span>
+    <span class="k">return</span> <span class="nx">isOwner</span><span class="p">(</span><span class="nx">docId</span><span class="p">,</span> <span class="nx">oldDoc</span><span class="p">,</span> <span class="nx">session</span><span class="p">);</span>
+<span class="p">});</span></code></pre></div></p>
+
+<p>Configuration is very straightforward - basically on every request to our collection we are checking if user is the owner of the todo. If not - we are denying access. All collections are secured by default. If we would want to add some permissive rules - we would have to do it for every other collection in our application.</p>
+
+<p>Now we need to plug our configuration into our server. That is done through <em>server.js</em>:
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">async</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="nx">async</span><span class="o">&amp;</span><span class="nx">rsquo</span><span class="p">;);</span>
+<span class="kd">var</span> <span class="nx">derby</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="nx">derby</span><span class="o">&amp;</span><span class="nx">rsquo</span><span class="p">;);</span><span class="o">&lt;</span><span class="err">/p&gt;</span>
+
+<span class="o">&lt;</span><span class="nx">p</span><span class="o">&gt;</span><span class="kd">var</span> <span class="nx">http</span>  <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="nx">http</span><span class="o">&amp;</span><span class="nx">rsquo</span><span class="p">;);</span>
+<span class="kd">var</span> <span class="nx">chalk</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="nx">chalk</span><span class="o">&amp;</span><span class="nx">rsquo</span><span class="p">;);</span><span class="o">&lt;</span><span class="err">/p&gt;</span>
+
+<span class="o">&lt;</span><span class="nx">p</span><span class="o">&gt;</span><span class="kd">var</span> <span class="nx">publicDir</span> <span class="o">=</span> <span class="nx">process</span><span class="p">.</span><span class="nx">cwd</span><span class="p">()</span> <span class="o">+</span> <span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="err">/public&amp;rsquo;;&lt;/p&gt;</span>
+
+<span class="o">&lt;</span><span class="nx">p</span><span class="o">&gt;</span><span class="nx">derby</span><span class="p">.</span><span class="nx">run</span><span class="p">(</span><span class="kd">function</span><span class="p">(){</span>
+<span class="c1">// … code omited</span></code></pre></div></p>
+
+<p>To:
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">async</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="nx">async</span><span class="o">&amp;</span><span class="nx">rsquo</span><span class="p">;);</span>
+<span class="kd">var</span> <span class="nx">derby</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="nx">derby</span><span class="o">&amp;</span><span class="nx">rsquo</span><span class="p">;);</span><span class="o">&lt;</span><span class="err">/p&gt;</span>
+
+<span class="o">&lt;</span><span class="nx">p</span><span class="o">&gt;</span><span class="kd">var</span> <span class="nx">http</span>  <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="nx">http</span><span class="o">&amp;</span><span class="nx">rsquo</span><span class="p">;);</span>
+<span class="kd">var</span> <span class="nx">chalk</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="nx">chalk</span><span class="o">&amp;</span><span class="nx">rsquo</span><span class="p">;);</span><span class="o">&lt;</span><span class="err">/p&gt;</span>
+
+<span class="o">&lt;</span><span class="nx">p</span><span class="o">&gt;</span><span class="kd">var</span> <span class="nx">publicDir</span> <span class="o">=</span> <span class="nx">process</span><span class="p">.</span><span class="nx">cwd</span><span class="p">()</span> <span class="o">+</span> <span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;</span><span class="err">/public&amp;rsquo;;</span>
+<span class="kd">var</span> <span class="nx">shareAccess</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">lsquo</span><span class="p">;.</span><span class="o">/</span><span class="nx">server</span><span class="o">/</span><span class="nx">shareAccess</span><span class="o">&amp;</span><span class="nx">rsquo</span><span class="p">;);</span><span class="o">&lt;</span><span class="err">/p&gt;</span>
+
+<span class="o">&lt;</span><span class="nx">p</span><span class="o">&gt;</span><span class="nx">derby</span><span class="p">.</span><span class="nx">use</span><span class="p">(</span><span class="nx">shareAccess</span><span class="p">);</span><span class="o">&lt;</span><span class="err">/p&gt;</span>
+
+<span class="o">&lt;</span><span class="nx">p</span><span class="o">&gt;</span><span class="nx">derby</span><span class="p">.</span><span class="nx">run</span><span class="p">(</span><span class="kd">function</span><span class="p">(){</span>
+<span class="c1">// … code omited</span></code></pre></div></p>
+
+<p>Now if we try to run our application again and to do our little trick with querying &lsquo;auths&rsquo; collection, we will get 403-error:
+<img class="screenShot" src="/images/posts/001/011-security-works.png"></p>
+
+<h1>Wrapping up</h1>
+
+<p>Today we created new derby application from the scratch, added some logic to it and secured it from malicious access. Finalized source code for this application can be found <a href="https://github.com/glkn-blog/001-private-todos">here</a></p>
+
+<h1>Credits</h1>
+
+<ul>
+<li><a href="http://decisionmapper.com/tutorials">Decision mapper tutorials</a></li>
+<li><a href="https://github.com/derbyparty/derby-login">derby-login module</a></li>
+<li><a href="https://github.com/derbyparty/derby-login-example">derby-login-example application</a></li>
+<li><a href="https://github.com/zag2art/derby-example-todo">derby-example-todo</a></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+</feed>
